@@ -6,21 +6,27 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Download ngrok v3
-      # استفاده از لینک مستقیم آخرین نسخه پایدار (v3)
-      run: Invoke-WebRequest https://bin.equinox.io/c/b34edq6ziqc/ngrok-v3-stable-windows-amd64.zip -OutFile ngrok.zip
+      run: Invoke-WebRequest -Uri "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip" -OutFile "ngrok.zip"
 
-    - name: Extract
-      run: Expand-Archive ngrok.zip
+    - name: Extracting ngrok
+      run: Expand-Archive ngrok.zip -DestinationPath .
 
-    - name: Auth
+    - name: Auth Ngrok
       run: .\ngrok.exe authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
     - name: Enable Remote Desktop
       run: |
-        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
+        
+    - name: Create User
+      run: |
+        $Password = ConvertTo-SecureString "P@ssw0rd123!" -AsPlainText -Force
+        New-LocalUser "AdminUser" -Password $Password -Description "RDP User"
+        Add-LocalGroupMember -Group "Remote Desktop Users" -Member "AdminUser"
+        Add-LocalGroupMember -Group "Administrators" -Member "AdminUser"
 
-    - name: Create Tunnel
-      # در نسخه جدید ngrok.exe مستقیم در پوشه اصلی اکسترکت می‌شود
-      run: .\ngrok.exe tcp 3389
+    - name: Start Tunnel (Asia/India Region)
+      # استفاده از ریجن هند (in) برای سرعت بهتر در ایران
+      run: .\ngrok.exe tcp --region in 3389
