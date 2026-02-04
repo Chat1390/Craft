@@ -1,31 +1,25 @@
-name: Playit Windows RDP
-on: 
-  push:
-  workflow_dispatch:
+name: Get Playit Claim Code
+on: workflow_dispatch
 
 jobs:
   build:
     runs-on: windows-latest
     steps:
-    - name: Download Playit.gg Portable
+    - name: Download Playit
       run: |
-        Invoke-WebRequest -Uri "https://github.com/playitcloud/playit-agent/releases/latest/download/playit-windows-x86_64.exe" -OutFile "playit.exe"
+        curl -L -o playit.exe https://github.com/playitcloud/playit-agent/releases/latest/download/playit-windows-x86_64.exe
 
-    - name: Enable Remote Desktop (RDP)
+    - name: Run and Show Code
+      shell: pwsh
       run: |
-        # فعال سازی پورت 3389 و تنظیمات رجیستری برای اجازه اتصال
-        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
-        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
+        # اجرای برنامه در پس‌زمینه و صبر کردن برای تولید کد
+        $process = Start-Process ./playit.exe -PassThru
+        Write-Host "صبر کنید تا کد تولید شود..."
+        Start-Sleep -Seconds 20
         
-    - name: Create RDP User
-      run: |
-        # ساخت کاربر جدید با دسترسی ادمین
-        $Password = ConvertTo-SecureString "P@ssw0rd123!" -AsPlainText -Force
-        New-LocalUser "AdminUser" -Password $Password -Description "RDP User"
-        Add-LocalGroupMember -Group "Remote Desktop Users" -Member "AdminUser"
-        Add-LocalGroupMember -Group "Administrators" -Member "AdminUser"
-
-    - name: Run Playit Tunnel
-      # اجرای تانل با استفاده از سکرت ذخیره شده در گیت‌هاب
-      run: .\playit.exe --secret ${{ secrets.PLAYIT_SECRET }}
+        # تلاش برای نمایش خروجی و نگه داشتن سرور به مدت ۳۰ دقیقه
+        Write-Host "حالا به لاگ‌های پایین نگاه کن و لینک Claim را پیدا کن"
+        Write-Host "بعد از کلیک روی لینک، این صفحه را نبند تا سرور فعال بماند"
+        
+        # ایجاد یک حلقه برای زنده نگه داشتن محیط جهت تایید شما
+        Start-Sleep -Seconds 1800
